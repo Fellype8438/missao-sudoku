@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Missão Sudoku: Infiltrando a Entidade</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+        :root {
+            --bg-color: #080b10;
+            --bg-gradient: radial-gradient(circle at 50% 0%, #111827 0%, #080b10 100%);
+            --panel-bg: #121620;
+            --text-main: #f3f4f6;
+            --text-muted: #9ca3af;
+            --accent: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.15);
+            --success: #4ade80;
+            --success-glow: rgba(74, 222, 128, 0.1);
+            --error: #f87171;
+            --error-glow: rgba(248, 113, 113, 0.1);
+            --border: rgba(255, 255, 255, 0.06);
+            --border-focus: rgba(56, 189, 248, 0.4);
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --radius-sm: 4px;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-color);
+            background: var(--bg-gradient);
+            color: var(--text-main);
+            margin: 0;
+            padding: 40px 20px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 32px;
+            min-height: 100vh;
+            box-sizing: border-box;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        header {
+            width: 100%;
+            text-align: center;
+            margin-bottom: 12px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        header p {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin: 0;
+        }
+
+        header strong {
+            color: var(--accent);
+            font-weight: 600;
+            font-size: 1.2rem;
+            text-shadow: 0 0 12px rgba(56, 189, 248, 0.25);
+            letter-spacing: -0.01em;
+        }
+
+        .game-container, .sidebar {
+            flex: 1;
+            min-width: 340px;
+            max-width: 500px;
+            background-color: var(--panel-bg);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 32px;
+            box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.7),
+                        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            box-sizing: border-box;
+            transition: transform 0.3s ease;
+        }
+
+        h1, h2, h3 {
+            font-weight: 600;
+            letter-spacing: -0.025em;
+            margin-top: 0;
+        }
+
+        h1 {
+            font-size: 1.5rem;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 16px;
+            margin-bottom: 16px;
+        }
+
+        h2 {
+            font-size: 1.3rem;
+            color: var(--accent);
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 12px;
+            margin-bottom: 20px;
+        }
+
+        h3 {
+            font-size: 1rem;
+            color: var(--text-main);
+            margin-bottom: 12px;
+        }
+
+        p, li {
+            font-size: 0.925rem;
+            line-height: 1.6;
+            color: var(--text-muted);
+        }
+
+        /* GRID DO SUDOKU 9X9 */
+        .sudoku-grid {
+            display: grid;
+            grid-template-columns: repeat(9, 1fr);
+            gap: 2px;
+            background-color: rgba(0, 0, 0, 0.4);
+            padding: 6px;
+            border-radius: var(--radius-md);
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            margin: 28px auto;
+            max-width: 420px;
+        }
+
+        .cell {
+            width: 100%;
+            height: 100%;
+            aspect-ratio: 1;
+            box-sizing: border-box;
+            background-color: #1a1f2c;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+            text-align: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #ffffff;
+            border-radius: var(--radius-sm);
+            transition: all 0.15s ease;
+            padding: 0;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Bordas de marcação dos blocos 3x3 do Sudoku tradicional */
+        .cell[data-coluna="2"], .cell[data-coluna="5"] {
+            border-right: 2px solid rgba(255, 255, 255, 0.25);
+        }
+        .cell[data-linha="2"], .cell[data-linha="5"] {
+            border-bottom: 2px solid rgba(255, 255, 255, 0.25);
+        }
+
+        .cell:not(.fixed):hover {
+            border-color: rgba(255, 255, 255, 0.2);
+            background-color: #22293a;
+        }
+
+        .cell:focus {
+            outline: none;
+            border-color: var(--accent) !important;
+            background-color: #1e2638;
+            box-shadow: 0 0 0 3px var(--accent-glow), inset 0 1px 3px rgba(0, 0, 0, 0.3);
+        }
+
+        .cell.fixed {
+            background-color: #0f131a;
+            color: var(--accent);
+            border-color: rgba(56, 189, 248, 0.05);
+            cursor: not-allowed;
+            text-shadow: 0 0 8px rgba(56, 189, 248, 0.4);
+        }
+
+        .status-panel {
+            background-color: #090c12;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            min-height: 72px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: var(--text-muted);
+            white-space: pre-line;
+            box-sizing: border-box;
+            box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+        }
+
+        .text-green { 
+            color: var(--success); 
+            text-shadow: 0 0 10px var(--success-glow);
+        }
+        
+        .text-red { 
+            color: var(--error); 
+            text-shadow: 0 0 10px var(--error-glow);
+        }
+
+        .concept-block {
+            margin-bottom: 24px;
+            padding-left: 14px;
+            border-left: 2px solid var(--accent);
+        }
+
+        .concept-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #ffffff;
+            margin-bottom: 6px;
+            letter-spacing: -0.01em;
+        }
+
+        .concept-block p {
+            margin: 0;
+            font-size: 0.875rem;
+        }
+
+        .legend-list {
+            list-style: none;
+            padding: 0;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 8px;
+            margin-top: 16px;
+        }
+
+        .legend-list li {
+            font-size: 0.8rem;
+            background: rgba(255, 255, 255, 0.02);
+            padding: 6px 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+
+        .legend-list strong {
+            color: var(--accent);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9rem;
+            margin-right: 4px;
+        }
+
+        @media (max-width: 800px) {
+            body { padding: 16px; }
+            .game-container, .sidebar { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <p>Projeto Desenvolvido por <strong>Equipe: Luis fillipi, Matheus, Joao Pedro e Fellype</strong> | Disciplina de IA Responsável</p>
+    </header>
+
+    <div class="game-container">
+        <h1>Terminal Tático: Invasão da Entidade</h1>
+        <p>Insira os valores de 1 a 9 para quebrar a criptografia do submarino Sevastopol. Atenção: a margem de erro é zero.</p>
+        
+        <div class="sudoku-grid" id="grid"></div>
+
+        <h3>Status do Terminal:</h3>
+        <div class="status-panel" id="status">Aguardando inserção de dados...</div>
+    </div>
+
+    <div class="sidebar">
+        <h2>Dashboard: IA Responsável</h2>
+        <p>Este simulador demonstra os limites dos sistemas automatizados fechados e a importância da supervisão humana (Human-in-the-Loop).</p>
+        
+        <div class="concept-block">
+            <div class="concept-title">1. A Luta contra o Algoritmo</div>
+            <p>A Entidade funciona como um computador de Sudoku perfeito, processando todas as regras instantaneamente. O papel do supervisor humano é encontrar o "espaço vazio" ou a ação imprevisível que quebra o padrão lógico do modelo.</p>
+        </div>
+
+        <div class="concept-block">
+            <div class="concept-title">2. O Método da Eliminação (Explicabilidade)</div>
+            <p>Na IA Responsável, decisões precisam ser auditáveis e explicáveis. O jogo reflete isso: não avançamos por adivinhação, mas eliminando as impossibilidades lógicas de cada célula.</p>
+        </div>
+
+        <div class="concept-block">
+            <div class="concept-title">3. O Tabuleiro Global (Impacto Sistêmico)</div>
+            <p>Se uma decisão errada ou enviesada for inserida no sistema, ela cria um conflito em toda a linha e coluna. Erros em IAs críticas geram um efeito cascata que pode colapsar o ecossistema inteiro.</p>
+        </div>
+
+        <div class="concept-block">
+            <div class="concept-title">4. Margem de Erro Zero & O Fator Humano</div>
+            <p>Em sistemas críticos, a tolerância a falhas é nula. A precisão matemática absoluta do modelo exige responsabilidade máxima no input de dados.</p>
+        </div>
+
+        <h3>Legenda das Forças do Sistema:</h3>
+        <ul class="legend-list">
+            <li><strong>1</strong> Ethan Hunt</li>
+            <li><strong>2</strong> Suporte Benji</li>
+            <li><strong>3</strong> Sevastopol</li>
+            <li><strong>4</strong> A Entidade</li>
+            <li><strong>5</strong> Luther Stickell</li>
+            <li><strong>6</strong> Ilsa Faust</li>
+            <li><strong>7</strong> Grace</li>
+            <li><strong>8</strong> Alanna Mitsopolis</li>
+            <li><strong>9</strong> Gabriel</li>
+        </ul>
+    </div>
+
+    <script>
+        // Tabuleiro Inicial 9x9 (0 representa células vazias)
+        const tabuleiroInicial = [
+            [5, 3, 0, 0, 7, 0, 0, 0, 0],
+            [6, 0, 0, 1, 9, 5, 0, 0, 0],
+            [0, 9, 8, 0, 0, 0, 0, 6, 0],
+            [8, 0, 0, 0, 6, 0, 0, 0, 3],
+            [4, 0, 0, 8, 0, 3, 0, 0, 1],
+            [7, 0, 0, 0, 2, 0, 0, 0, 6],
+            [0, 6, 0, 0, 0, 0, 2, 8, 0],
+            [0, 0, 0, 4, 1, 9, 0, 0, 5],
+            [0, 0, 0, 0, 8, 0, 0, 7, 9]
+        ];
+
+        // Gabarito correspondente 100% correto resolvido
+        const gabarito = [
+            [5, 3, 4, 6, 7, 8, 9, 1, 2],
+            [6, 7, 2, 1, 9, 5, 3, 4, 8],
+            [1, 9, 8, 3, 4, 2, 5, 6, 7],
+            [8, 5, 9, 7, 6, 1, 4, 2, 3],
+            [4, 2, 6, 8, 5, 3, 7, 9, 1],
+            [7, 1, 3, 9, 2, 4, 8, 5, 6],
+            [9, 6, 5, 4, 3, 7, 2, 8, 1],
+            [2, 8, 7, 4, 1, 9, 6, 3, 5],
+            [3, 4, 1, 2, 8, 6, 5, 7, 9]
+        ];
+
+        const gridElement = document.getElementById('grid');
+        const statusElement = document.getElementById('status');
+        let jogoAtivo = true;
+
+        function criarTabuleiro() {
+            for (let l = 0; l < 9; l++) {
+                for (let c = 0; c < 9; c++) {
+                    const cellValue = tabuleiroInicial[l][c];
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.maxLength = 1;
+                    input.classList.add('cell');
+                    input.setAttribute('data-linha', l);
+                    input.setAttribute('data-coluna', c);
+
+                    if (cellValue !== 0) {
+                        input.value = cellValue;
+                        input.classList.add('fixed');
+                        input.disabled = true;
+                    } else {
+                        input.addEventListener('input', (e) => processarJogada(e, l, c));
+                    }
+
+                    gridElement.appendChild(input);
+                }
+            }
+        }
+
+        function processarJogada(event, linha, coluna) {
+            if (!jogoAtivo) return;
+
+            const input = event.target;
+            const valorInserido = parseInt(input.value);
+
+            if (input.value === '') return;
+
+            // Validação agora estendida de 1 a 9
+            if (isNaN(valorInserido) || valorInserido < 1 || valorInserido > 9) {
+                statusElement.innerHTML = `<span class="text-red">ENTRADA INVÁLIDA! Use apenas números de 1 a 9.</span>`;
+                input.value = '';
+                return;
+            }
+
+            if (gabarito[linha][coluna] === valorInserido) {
+                statusElement.innerHTML = `<span class="text-green">>> Variável aceita. Restrição de segurança burlada com sucesso.</span>`;
+                verificarVitoria();
+            } else {
+                jogoAtivo = false;
+                statusElement.innerHTML = `<span class="text-red">>> ERRO DETECTADO! A Entidade previu seu movimento.\n>> Xeque-mate lógico ativado. Sistema bloqueado.</span>`;
+                bloquearTabuleiro();
+            }
+        }
+
+        function bloquearTabuleiro() {
+            const inputs = document.querySelectorAll('.cell');
+            inputs.forEach(input => input.disabled = true);
+        }
+
+        function verificarVitoria() {
+            const inputs = document.querySelectorAll('.cell');
+            let todasPreenchidas = true;
+
+            inputs.forEach(input => {
+                if (input.value === '') todasPreenchidas = false;
+            });
+
+            if (todasPreenchidas && jogoAtivo) {
+                statusElement.innerHTML = `<span class="text-green">>> ACESSO CONCEDIDO!\n>> A intuição humana encontrou o ponto cego do modelo.\n>> A Entidade foi neutralizada de forma responsável.</span>`;
+            }
+        }
+
+        criarTabuleiro();
+    </script>
+</body>
+</html>
