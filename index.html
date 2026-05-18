@@ -115,7 +115,6 @@
             color: var(--text-muted);
         }
 
-        /* GRID DO SUDOKU 9X9 */
         .sudoku-grid {
             display: grid;
             grid-template-columns: repeat(9, 1fr);
@@ -146,7 +145,6 @@
             box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.3);
         }
 
-        /* Bordas de marcação dos blocos 3x3 do Sudoku tradicional */
         .cell[data-coluna="2"], .cell[data-coluna="5"] {
             border-right: 2px solid rgba(255, 255, 255, 0.25);
         }
@@ -179,7 +177,7 @@
             border: 1px solid var(--border);
             border-radius: var(--radius-md);
             padding: 16px;
-            min-height: 72px;
+            min-height: 90px;
             font-family: 'JetBrains Mono', monospace;
             font-size: 0.85rem;
             line-height: 1.5;
@@ -256,12 +254,12 @@
 
     <div class="game-container">
         <h1>Terminal Tático: Invasão da Entidade</h1>
-        <p>Insira os valores de 1 a 9 para quebrar a criptografia do submarino Sevastopol. Atenção: a margem de erro é zero.</p>
+        <p>Insira os valores de 1 a 9 para quebrar a criptografia do submarino Sevastopol. Você possui 5 tentativas de segurança contra o firewall.</p>
         
         <div class="sudoku-grid" id="grid"></div>
 
         <h3>Status do Terminal:</h3>
-        <div class="status-panel" id="status">Aguardando inserção de dados...</div>
+        <div class="status-panel" id="status">Sistema pronto.\nTentativas restantes do firewall: 5</div>
     </div>
 
     <div class="sidebar">
@@ -284,8 +282,8 @@
         </div>
 
         <div class="concept-block">
-            <div class="concept-title">4. Margem de Erro Zero & O Fator Humano</div>
-            <p>Em sistemas críticos, a tolerância a falhas é nula. A precisão matemática absoluta do modelo exige responsabilidade máxima no input de dados.</p>
+            <div class="concept-title">4. Margem de Erro Controlada & Tolerância</div>
+            <p>Sistemas resilientes contam com mecanismos de tolerância a falhas temporárias antes do bloqueio total do ecossistema. As 5 tentativas simulam as barreiras de contenção cibernética.</p>
         </div>
 
         <h3>Legenda das Forças do Sistema:</h3>
@@ -303,7 +301,6 @@
     </div>
 
     <script>
-        // Tabuleiro Inicial 9x9 (0 representa células vazias)
         const tabuleiroInicial = [
             [5, 3, 0, 0, 7, 0, 0, 0, 0],
             [6, 0, 0, 1, 9, 5, 0, 0, 0],
@@ -316,7 +313,6 @@
             [0, 0, 0, 0, 8, 0, 0, 7, 9]
         ];
 
-        // Gabarito correspondente 100% correto resolvido
         const gabarito = [
             [5, 3, 4, 6, 7, 8, 9, 1, 2],
             [6, 7, 2, 1, 9, 5, 3, 4, 8],
@@ -332,6 +328,9 @@
         const gridElement = document.getElementById('grid');
         const statusElement = document.getElementById('status');
         let jogoAtivo = true;
+        
+        // Novas variáveis de controle das tentativas
+        let tentativasRestantes = 5;
 
         function criarTabuleiro() {
             for (let l = 0; l < 9; l++) {
@@ -365,20 +364,26 @@
 
             if (input.value === '') return;
 
-            // Validação agora estendida de 1 a 9
             if (isNaN(valorInserido) || valorInserido < 1 || valorInserido > 9) {
-                statusElement.innerHTML = `<span class="text-red">ENTRADA INVÁLIDA! Use apenas números de 1 a 9.</span>`;
+                statusElement.innerHTML = `<span class="text-red">ENTRADA INVÁLIDA! Use apenas números de 1 a 9.\nTentativas restantes: ${tentativasRestantes}</span>`;
                 input.value = '';
                 return;
             }
 
             if (gabarito[linha][coluna] === valorInserido) {
-                statusElement.innerHTML = `<span class="text-green">>> Variável aceita. Restrição de segurança burlada com sucesso.</span>`;
+                statusElement.innerHTML = `<span class="text-green">>> Variável aceita. Restrição de segurança burlada com sucesso.\nTentativas restantes: ${tentativasRestantes}</span>`;
                 verificarVitoria();
             } else {
-                jogoAtivo = false;
-                statusElement.innerHTML = `<span class="text-red">>> ERRO DETECTADO! A Entidade previu seu movimento.\n>> Xeque-mate lógico ativado. Sistema bloqueado.</span>`;
-                bloquearTabuleiro();
+                tentativasRestantes--;
+                
+                if (tentativasRestantes > 0) {
+                    statusElement.innerHTML = `<span class="text-red">>> ALERTA! Desvio lógico detectado. Firewall mitigou a ação.\n>> Tentativas de segurança restantes: ${tentativasRestantes}</span>`;
+                    input.value = ''; // Limpa o número incorreto digitado para o usuário tentar novamente
+                } else {
+                    jogoAtivo = false;
+                    statusElement.innerHTML = `<span class="text-red">>> DETECCÇÃO TOTAL DO FIREWALL! A Entidade bloqueou o sistema.\n>> Xeque-mate lógico ativado. Terminal encerrado permanentemente.</span>`;
+                    bloquearTabuleiro();
+                }
             }
         }
 
